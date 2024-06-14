@@ -73,11 +73,8 @@ local function createButton(text, color)
     return Button
 end
 
-local StartButton = createButton("Start", Color3.new(0, 0.5, 0))
-StartButton.Parent = ScrollingFrame
-
-local StopButton = createButton("Stop", Color3.new(0.5, 0, 0))
-StopButton.Parent = ScrollingFrame
+local FlyButton = createButton("Fly", Color3.new(0, 0.5, 0))
+FlyButton.Parent = ScrollingFrame
 
 local SpeedButton = createButton("Speed", Color3.new(0, 0, 0.5))
 SpeedButton.Parent = ScrollingFrame
@@ -202,15 +199,15 @@ local function ToggleSpin()
 end
 
 -- Conectar los botones a las funciones
-StartButton.MouseButton1Click:Connect(function()
-    if not Flying then
-        StartFlying()
-    end
-end)
-
-StopButton.MouseButton1Click:Connect(function()
+FlyButton.MouseButton1Click:Connect(function()
     if Flying then
         StopFlying()
+        FlyButton.Text = "Fly"
+        FlyButton.BackgroundColor3 = Color3.new(0, 0.5, 0)
+    else
+        StartFlying()
+        FlyButton.Text = "Stop"
+        FlyButton.BackgroundColor3 = Color3.new(0.5, 0, 0)
     end
 end)
 
