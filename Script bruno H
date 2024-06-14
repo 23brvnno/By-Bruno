@@ -8,6 +8,9 @@ local FastSpeed = 100 -- Velocidad rápida del jugador
 local Running = false
 local AimAssistEnabled = false
 local NoclipEnabled = false
+local Spinning = false
+local SpinSpeed = 5000 -- Velocidad de giro super mega rápida
+local SpinForce = 10000 -- Fuerza aplicada al colisionar
 local BodyVelocity = Instance.new("BodyVelocity")
 local BodyGyro = Instance.new("BodyGyro")
 local RunService = game:GetService("RunService")
@@ -32,8 +35,15 @@ local UICorner = Instance.new("UICorner")
 UICorner.Parent = Frame
 UICorner.CornerRadius = UDim.new(0, 10)
 
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Parent = Frame
+ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 3, 0)
+ScrollingFrame.ScrollBarThickness = 10
+ScrollingFrame.BackgroundTransparency = 1
+
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = Frame
+UIListLayout.Parent = ScrollingFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 5)
 
@@ -64,19 +74,22 @@ local function createButton(text, color)
 end
 
 local StartButton = createButton("Start", Color3.new(0, 0.5, 0))
-StartButton.Parent = Frame
+StartButton.Parent = ScrollingFrame
 
 local StopButton = createButton("Stop", Color3.new(0.5, 0, 0))
-StopButton.Parent = Frame
+StopButton.Parent = ScrollingFrame
 
 local SpeedButton = createButton("Speed", Color3.new(0, 0, 0.5))
-SpeedButton.Parent = Frame
+SpeedButton.Parent = ScrollingFrame
 
 local AimAssistButton = createButton("Aim Assist", Color3.new(0.5, 0, 0.5))
-AimAssistButton.Parent = Frame
+AimAssistButton.Parent = ScrollingFrame
 
 local NoclipButton = createButton("Noclip", Color3.new(0, 0.5, 0.5))
-NoclipButton.Parent = Frame
+NoclipButton.Parent = ScrollingFrame
+
+local SpinButton = createButton("Spin", Color3.new(0.5, 0.5, 0))
+SpinButton.Parent = ScrollingFrame
 
 -- Configuración de BodyGyro
 BodyGyro.P = 9e4
@@ -157,6 +170,37 @@ local function ToggleNoclip()
     end
 end
 
+-- Función para alternar Spinning
+local function ToggleSpin()
+    Spinning = not Spinning
+    local Character = Player.Character
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if Spinning then
+        RunService:BindToRenderStep("Spin", Enum.RenderPriority.Input.Value, function()
+            if Spinning then
+                HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(SpinSpeed * RunService.RenderStepped:Wait()), 0)
+                -- Aplicar fuerza explosiva a jugadores cercanos
+                for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+                    if otherPlayer ~= Player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local otherHumanoidRootPart = otherPlayer.Character.HumanoidRootPart
+                        local distance = (HumanoidRootPart.Position - otherHumanoidRootPart.Position).Magnitude
+                        if distance < 10 then -- Radio de la explosión
+                            local force = Instance.new("BodyVelocity")
+                            force.Velocity = (otherHumanoidRootPart.Position - HumanoidRootPart.Position).unit * SpinForce
+                            force.P = 5000
+                            force.MaxForce = Vector3.new(100000, 100000, 100000)
+                            force.Parent = otherHumanoidRootPart
+                            game.Debris:AddItem(force, 0.1) -- Eliminar la fuerza después de 0.1 segundos
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        RunService:UnbindFromRenderStep("Spin")
+    end
+end
+
 -- Conectar los botones a las funciones
 StartButton.MouseButton1Click:Connect(function()
     if not Flying then
@@ -180,6 +224,10 @@ end)
 
 NoclipButton.MouseButton1Click:Connect(function()
     ToggleNoclip()
+end)
+
+SpinButton.MouseButton1Click:Connect(function()
+    ToggleSpin()
 end)
 
 -- Hacer que el Frame sea movible
