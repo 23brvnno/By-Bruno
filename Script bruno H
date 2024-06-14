@@ -1,0 +1,246 @@
+-- Variables
+local Player = game.Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Flying = false
+local Speed = 50 -- Ajusta la velocidad de vuelo aquí
+local NormalSpeed = 16 -- Velocidad normal del jugador
+local FastSpeed = 100 -- Velocidad rápida del jugador
+local Running = false
+local AimAssistEnabled = false
+local NoclipEnabled = false
+local BodyVelocity = Instance.new("BodyVelocity")
+local BodyGyro = Instance.new("BodyGyro")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Crear UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui.Name = "UI_1"
+
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+Frame.BackgroundTransparency = 0.3
+Frame.Position = UDim2.new(0.1, 0, 0.1, 0)
+Frame.Size = UDim2.new(0, 200, 0, 300)
+Frame.BorderSizePixel = 0
+Frame.Draggable = true
+Frame.Active = true
+
+local UICorner = Instance.new("UICorner")
+UICorner.Parent = Frame
+UICorner.CornerRadius = UDim.new(0, 10)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Frame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- Función para crear botones multicolor
+local function createButton(text, color)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, -10, 0, 50)
+    Button.Position = UDim2.new(0, 5, 0, 0)
+    Button.Text = text
+    Button.TextColor3 = Color3.new(1, 1, 1)
+    Button.BackgroundColor3 = color or Color3.new(0.3, 0.3, 0.3)
+    Button.BackgroundTransparency = 0.3
+    Button.BorderSizePixel = 0
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 10)
+    UICorner.Parent = Button
+    
+    -- Cambiar color al interactuar
+    Button.MouseEnter:Connect(function()
+        Button.BackgroundColor3 = color and color + Color3.new(0.1, 0.1, 0.1) or Color3.new(0.4, 0.4, 0.4)
+    end)
+    
+    Button.MouseLeave:Connect(function()
+        Button.BackgroundColor3 = color or Color3.new(0.3, 0.3, 0.3)
+    end)
+    
+    return Button
+end
+
+local StartButton = createButton("Start", Color3.new(0, 0.5, 0))
+StartButton.Parent = Frame
+
+local StopButton = createButton("Stop", Color3.new(0.5, 0, 0))
+StopButton.Parent = Frame
+
+local SpeedButton = createButton("Speed", Color3.new(0, 0, 0.5))
+SpeedButton.Parent = Frame
+
+local AimAssistButton = createButton("Aim Assist", Color3.new(0.5, 0, 0.5))
+AimAssistButton.Parent = Frame
+
+local NoclipButton = createButton("Noclip", Color3.new(0, 0.5, 0.5))
+NoclipButton.Parent = Frame
+
+-- Configuración de BodyGyro
+BodyGyro.P = 9e4
+BodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+BodyGyro.cframe = workspace.CurrentCamera.CFrame
+
+-- Configuración de BodyVelocity
+BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+BodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+
+-- Función para comenzar a volar
+local function StartFlying()
+    Flying = true
+    local Character = Player.Character
+    local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+    if HumanoidRootPart then
+        BodyGyro.Parent = HumanoidRootPart
+        BodyVelocity.Parent = HumanoidRootPart
+        RunService:BindToRenderStep("Fly", Enum.RenderPriority.Input.Value, function()
+            if Flying then
+                BodyGyro.cframe = workspace.CurrentCamera.CFrame
+                local direction = Vector3.new(0, 0, 0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    direction = direction + Camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    direction = direction - Camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    direction = direction - Camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    direction = direction + Camera.CFrame.RightVector
+                end
+                BodyVelocity.velocity = direction * Speed
+            end
+        end)
+    end
+end
+
+-- Función para detener el vuelo
+local function StopFlying()
+    Flying = false
+    BodyGyro.Parent = nil
+    BodyVelocity.Parent = nil
+    RunService:UnbindFromRenderStep("Fly")
+end
+
+-- Función para alternar la velocidad de correr
+local function ToggleSpeed()
+    local Humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid then
+        if Running then
+            Humanoid.WalkSpeed = NormalSpeed
+            Running = false
+        else
+            Humanoid.WalkSpeed = FastSpeed
+            Running = true
+        end
+    end
+end
+
+-- Función para alternar Aim Assist
+local function ToggleAimAssist()
+    AimAssistEnabled = not AimAssistEnabled
+end
+
+-- Función para alternar Noclip
+local function ToggleNoclip()
+    NoclipEnabled = not NoclipEnabled
+    local Character = Player.Character
+    if Character then
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not NoclipEnabled
+            end
+        end
+    end
+end
+
+-- Conectar los botones a las funciones
+StartButton.MouseButton1Click:Connect(function()
+    if not Flying then
+        StartFlying()
+    end
+end)
+
+StopButton.MouseButton1Click:Connect(function()
+    if Flying then
+        StopFlying()
+    end
+end)
+
+SpeedButton.MouseButton1Click:Connect(function()
+    ToggleSpeed()
+end)
+
+AimAssistButton.MouseButton1Click:Connect(function()
+    ToggleAimAssist()
+end)
+
+NoclipButton.MouseButton1Click:Connect(function()
+    ToggleNoclip()
+end)
+
+-- Hacer que el Frame sea movible
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+Frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        update(input)
+    end
+end)
+
+-- Aim Assist Logic
+RunService.RenderStepped:Connect(function()
+    if AimAssistEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local closestPlayer
+        local shortestDistance = math.huge
+
+        for _, targetPlayer in ipairs(game.Players:GetPlayers()) do
+            if targetPlayer ~= Player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+                local targetHead = targetPlayer.Character.Head
+                local screenPoint = Camera:WorldToScreenPoint(targetHead.Position)
+                local mousePos = UserInputService:GetMouseLocation()
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).magnitude
+                
+                if distance < shortestDistance then
+                    closestPlayer = targetPlayer
+                    shortestDistance = distance
+                end
+            end
+        end
+
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
+        end
+    end
+end)
