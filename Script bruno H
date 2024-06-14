@@ -15,6 +15,7 @@ local BodyVelocity = Instance.new("BodyVelocity")
 local BodyGyro = Instance.new("BodyGyro")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local ESPEnabled = false
 
 local AimFOV = 90 -- Ajusta el FOV del Aim Assist aquí para hacerlo más pequeño
 local AimCircle = Drawing.new("Circle")
@@ -94,6 +95,9 @@ NoclipButton.Parent = ScrollingFrame
 
 local SpinButton = createButton("Spin", Color3.new(0.5, 0.5, 0))
 SpinButton.Parent = ScrollingFrame
+
+local ESPButton = createButton("ESP", Color3.new(0.5, 0, 0))
+ESPButton.Parent = ScrollingFrame
 
 -- Configuración de BodyGyro
 BodyGyro.P = 9e4
@@ -195,7 +199,7 @@ local function ToggleSpin()
                             force.P = 5000
                             force.MaxForce = Vector3.new(100000, 100000, 100000)
                             force.Parent = otherHumanoidRootPart
-                            game.Debris:AddItem(force, 0.1) -- Eliminar la fuerza después de 0.1 segundos
+                            game.Debris:AddItem(force, 0.1)
                         end
                     end
                 end
@@ -203,6 +207,51 @@ local function ToggleSpin()
         end)
     else
         RunService:UnbindFromRenderStep("Spin")
+    end
+end
+
+-- Función para alternar ESP
+local ESPConnections = {}
+local function ToggleESP()
+    ESPEnabled = not ESPEnabled
+    if ESPEnabled then
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= Player then
+                local Box = Drawing.new("Square")
+                Box.Thickness = 2
+                Box.Color = Color3.fromRGB(255, 0, 0)
+                Box.Filled = false
+                Box.Visible = false
+
+                local function UpdateESP()
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local RootPart = player.Character.HumanoidRootPart
+                        local RootPos, onScreen = Camera:WorldToViewportPoint(RootPart.Position)
+                        if onScreen then
+                            local Size = (Camera:WorldToViewportPoint(RootPart.Position - Vector3.new(2, 3, 0)) - Camera:WorldToViewportPoint(RootPart.Position + Vector3.new(2, 3, 0))).Magnitude
+                            Box.Size = Vector2.new(Size, Size * 1.5)
+                            Box.Position = Vector2.new(RootPos.X - Box.Size.X / 2, RootPos.Y - Box.Size.Y / 2)
+                            Box.Visible = true
+                        else
+                            Box.Visible = false
+                        end
+                    else
+                        Box.Visible = false
+                    end
+                end
+
+                local connection = RunService.RenderStepped:Connect(UpdateESP)
+                table.insert(ESPConnections, connection)
+                player.CharacterRemoving:Connect(function()
+                    Box:Remove()
+                end)
+            end
+        end
+    else
+        for _, connection in ipairs(ESPConnections) do
+            connection:Disconnect()
+        end
+        ESPConnections = {}
     end
 end
 
@@ -233,6 +282,10 @@ end)
 
 SpinButton.MouseButton1Click:Connect(function()
     ToggleSpin()
+end)
+
+ESPButton.MouseButton1Click:Connect(function()
+    ToggleESP()
 end)
 
 -- Hacer que el Frame sea movible
@@ -283,7 +336,7 @@ RunService.RenderStepped:Connect(function()
                 local targetHead = targetPlayer.Character.Head
                 local screenPoint = Camera:WorldToScreenPoint(targetHead.Position)
                 local mousePos = UserInputService:GetMouseLocation()
-                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).magnitude
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).Magnitude
                 
                 if distance < shortestDistance and distance < AimFOV then
                     closestPlayer = targetPlayer
@@ -309,4 +362,5 @@ Player.CharacterAdded:Connect(function(character)
     AimAssistButton.Parent = ScrollingFrame
     NoclipButton.Parent = ScrollingFrame
     SpinButton.Parent = ScrollingFrame
+    ESPButton.Parent = ScrollingFrame
 end)
