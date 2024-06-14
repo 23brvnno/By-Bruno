@@ -16,6 +16,8 @@ local BodyGyro = Instance.new("BodyGyro")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ESPEnabled = false
+local ESPConnections = {}
+local ESPObjects = {}
 
 local AimFOV = 90 -- Ajusta el FOV del Aim Assist aquí para hacerlo más pequeño
 local AimCircle = Drawing.new("Circle")
@@ -211,7 +213,6 @@ local function ToggleSpin()
 end
 
 -- Función para alternar ESP
-local ESPConnections = {}
 local function ToggleESP()
     ESPEnabled = not ESPEnabled
     if ESPEnabled then
@@ -222,6 +223,13 @@ local function ToggleESP()
                 Box.Color = Color3.fromRGB(255, 0, 0)
                 Box.Filled = false
                 Box.Visible = false
+                ESPObjects[player] = {Box = Box}
+
+                local DistanceText = Drawing.new("Text")
+                DistanceText.Color = Color3.fromRGB(255, 255, 255)
+                DistanceText.Size = 16
+                DistanceText.Visible = false
+                ESPObjects[player].DistanceText = DistanceText
 
                 local function UpdateESP()
                     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -232,11 +240,18 @@ local function ToggleESP()
                             Box.Size = Vector2.new(Size, Size * 1.5)
                             Box.Position = Vector2.new(RootPos.X - Box.Size.X / 2, RootPos.Y - Box.Size.Y / 2)
                             Box.Visible = true
+
+                            local distance = (Player.Character.HumanoidRootPart.Position - RootPart.Position).Magnitude
+                            DistanceText.Text = string.format("%.0f m", distance)
+                            DistanceText.Position = Vector2.new(RootPos.X, RootPos.Y - Box.Size.Y / 2 - 20)
+                            DistanceText.Visible = true
                         else
                             Box.Visible = false
+                            DistanceText.Visible = false
                         end
                     else
                         Box.Visible = false
+                        DistanceText.Visible = false
                     end
                 end
 
@@ -244,7 +259,10 @@ local function ToggleESP()
                 table.insert(ESPConnections, connection)
                 player.CharacterRemoving:Connect(function()
                     Box:Remove()
+                    DistanceText:Remove()
+                    ESPObjects[player] = nil
                 end)
+                player.CharacterAdded:Connect(UpdateESP)
             end
         end
     else
@@ -252,6 +270,11 @@ local function ToggleESP()
             connection:Disconnect()
         end
         ESPConnections = {}
+        for _, objects in pairs(ESPObjects) do
+            objects.Box:Remove()
+            objects.DistanceText:Remove()
+        end
+        ESPObjects = {}
     end
 end
 
@@ -363,4 +386,14 @@ Player.CharacterAdded:Connect(function(character)
     NoclipButton.Parent = ScrollingFrame
     SpinButton.Parent = ScrollingFrame
     ESPButton.Parent = ScrollingFrame
+end)
+
+-- Actualizar ESP cuando el jugador reaparece
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if ESPEnabled then
+            ToggleESP()
+            ToggleESP()
+        end
+    end)
 end)
