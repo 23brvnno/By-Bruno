@@ -16,9 +16,16 @@ local BodyGyro = Instance.new("BodyGyro")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local AimFOV = 90 -- Ajusta el FOV del Aim Assist aquí para hacerlo más pequeño
+local AimCircle = Drawing.new("Circle")
+AimCircle.Thickness = 2
+AimCircle.Radius = AimFOV
+AimCircle.Color = Color3.fromRGB(0, 255, 0)
+AimCircle.Visible = false
+
 -- Crear UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui.Parent = game.CoreGui
 ScreenGui.Name = "UI_1"
 
 local Frame = Instance.new("Frame")
@@ -152,6 +159,7 @@ end
 -- Función para alternar Aim Assist
 local function ToggleAimAssist()
     AimAssistEnabled = not AimAssistEnabled
+    AimCircle.Visible = AimAssistEnabled
 end
 
 -- Función para alternar Noclip
@@ -198,7 +206,7 @@ local function ToggleSpin()
     end
 end
 
--- Conectar los botones a las funciones
+-- Conectar botones a las funciones
 FlyButton.MouseButton1Click:Connect(function()
     if Flying then
         StopFlying()
@@ -277,7 +285,7 @@ RunService.RenderStepped:Connect(function()
                 local mousePos = UserInputService:GetMouseLocation()
                 local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).magnitude
                 
-                if distance < shortestDistance then
+                if distance < shortestDistance and distance < AimFOV then
                     closestPlayer = targetPlayer
                     shortestDistance = distance
                 end
@@ -288,4 +296,17 @@ RunService.RenderStepped:Connect(function()
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
         end
     end
+    
+    -- Actualizar la posición del AimCircle
+    local mousePos = UserInputService:GetMouseLocation()
+    AimCircle.Position = mousePos
+end)
+
+-- Mantener el menú al reaparecer
+Player.CharacterAdded:Connect(function(character)
+    FlyButton.Parent = ScrollingFrame
+    SpeedButton.Parent = ScrollingFrame
+    AimAssistButton.Parent = ScrollingFrame
+    NoclipButton.Parent = ScrollingFrame
+    SpinButton.Parent = ScrollingFrame
 end)
