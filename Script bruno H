@@ -26,6 +26,9 @@ AimCircle.Radius = AimFOV
 AimCircle.Color = Color3.fromRGB(0, 255, 0)
 AimCircle.Visible = false
 
+local Key = "BRUNOH"
+local Authorized = false
+
 -- Crear UI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
@@ -33,21 +36,36 @@ ScreenGui.Name = "UI_1"
 
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-Frame.BackgroundTransparency = 0.3
+Frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+Frame.BackgroundTransparency = 0.2
 Frame.Position = UDim2.new(0.1, 0, 0.1, 0)
-Frame.Size = UDim2.new(0, 200, 0, 300)
+Frame.Size = UDim2.new(0, 250, 0, 350)
 Frame.BorderSizePixel = 0
 Frame.Draggable = true
 Frame.Active = true
+Frame.Visible = false
 
 local UICorner = Instance.new("UICorner")
 UICorner.Parent = Frame
 UICorner.CornerRadius = UDim.new(0, 10)
 
+local Header = Instance.new("TextLabel")
+Header.Parent = Frame
+Header.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.Font = Enum.Font.SourceSansBold
+Header.Text = "Main Menu"
+Header.TextSize = 24
+Header.TextColor3 = Color3.new(1, 1, 1)
+
+local HeaderUICorner = Instance.new("UICorner")
+HeaderUICorner.Parent = Header
+HeaderUICorner.CornerRadius = UDim.new(0, 10)
+
 local ScrollingFrame = Instance.new("ScrollingFrame")
 ScrollingFrame.Parent = Frame
-ScrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -50)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 50)
 ScrollingFrame.CanvasSize = UDim2.new(0, 0, 3, 0)
 ScrollingFrame.ScrollBarThickness = 10
 ScrollingFrame.BackgroundTransparency = 1
@@ -60,13 +78,15 @@ UIListLayout.Padding = UDim.new(0, 5)
 -- Función para crear botones multicolor
 local function createButton(text, color)
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -10, 0, 50)
-    Button.Position = UDim2.new(0, 5, 0, 0)
+    Button.Size = UDim2.new(1, -20, 0, 50)
+    Button.Position = UDim2.new(0, 10, 0, 0)
     Button.Text = text
     Button.TextColor3 = Color3.new(1, 1, 1)
     Button.BackgroundColor3 = color or Color3.new(0.3, 0.3, 0.3)
     Button.BackgroundTransparency = 0.3
     Button.BorderSizePixel = 0
+    Button.Font = Enum.Font.SourceSansBold
+    Button.TextSize = 18
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
     UICorner.Parent = Button
@@ -195,13 +215,9 @@ local function ToggleSpin()
                     if otherPlayer ~= Player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         local otherHumanoidRootPart = otherPlayer.Character.HumanoidRootPart
                         local distance = (HumanoidRootPart.Position - otherHumanoidRootPart.Position).Magnitude
-                        if distance < 10 then -- Radio de la explosión
-                            local force = Instance.new("BodyVelocity")
-                            force.Velocity = (otherHumanoidRootPart.Position - HumanoidRootPart.Position).unit * SpinForce
-                            force.P = 5000
-                            force.MaxForce = Vector3.new(100000, 100000, 100000)
-                            force.Parent = otherHumanoidRootPart
-                            game.Debris:AddItem(force, 0.1)
+                        if distance < 10 then -- Distancia de explosión
+                            local direction = (otherHumanoidRootPart.Position - HumanoidRootPart.Position).unit
+                            otherHumanoidRootPart.Velocity = direction * SpinForce
                         end
                     end
                 end
@@ -397,3 +413,94 @@ game.Players.PlayerAdded:Connect(function(player)
         end
     end)
 end)
+
+-- Solicitar clave al ejecutar el script
+local function requestKey()
+    local KeyGui = Instance.new("ScreenGui")
+    KeyGui.Parent = game.CoreGui
+    KeyGui.Name = "KeyGui"
+
+    local KeyFrame = Instance.new("Frame")
+    KeyFrame.Parent = KeyGui
+    KeyFrame.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    KeyFrame.BackgroundTransparency = 0.3
+    KeyFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+    KeyFrame.Size = UDim2.new(0, 300, 0, 100)
+    KeyFrame.BorderSizePixel = 0
+    KeyFrame.Active = true
+    KeyFrame.Draggable = true
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.Parent = KeyFrame
+    UICorner.CornerRadius = UDim.new(0, 10)
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Parent = KeyFrame
+    TextBox.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    TextBox.BackgroundTransparency = 0.3
+    TextBox.BorderSizePixel = 0
+    TextBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+    TextBox.Size = UDim2.new(0.8, 0, 0.4, 0)
+    TextBox.Text = ""
+    TextBox.PlaceholderText = "Enter Key"
+    TextBox.TextColor3 = Color3.new(1, 1, 1)
+    TextBox.ClearTextOnFocus = false
+    TextBox.Font = Enum.Font.SourceSansBold
+    TextBox.TextSize = 18
+
+    local function checkKey()
+        if TextBox.Text == Key then
+            Authorized = true
+            KeyGui:Destroy()
+            Frame.Visible = true
+        else
+            TextBox.Text = ""
+            TextBox.PlaceholderText = "Invalid Key"
+        end
+    end
+
+    TextBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            checkKey()
+        end
+    end)
+
+    -- Hacer que el KeyFrame sea movible
+    local draggingKeyFrame = false
+    local dragKeyFrameInput
+    local dragKeyFrameStart
+    local startKeyFramePos
+
+    local function updateKeyFrame(input)
+        local delta = input.Position - dragKeyFrameStart
+        KeyFrame.Position = UDim2.new(startKeyFramePos.X.Scale, startKeyFramePos.X.Offset + delta.X, startKeyFramePos.Y.Scale, startKeyFramePos.Y.Offset + delta.Y)
+    end
+
+    KeyFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType.Touch then
+            draggingKeyFrame = true
+            dragKeyFrameStart = input.Position
+            startKeyFramePos = KeyFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    draggingKeyFrame = false
+                end
+            end)
+        end
+    end)
+
+    KeyFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType.Touch then
+            dragKeyFrameInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if draggingKeyFrame and input == dragKeyFrameInput then
+            updateKeyFrame(input)
+        end
+    end)
+end
+
+requestKey()
